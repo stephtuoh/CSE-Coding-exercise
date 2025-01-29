@@ -54,10 +54,13 @@ deals_type_2 = [
     ]
 
 # Grouped item-type deals - e.g. Any 3 ales from the set {...} for £6
-Ales_set = ["Amber Ale","Pale Ale","Ginger Ale","IPA"]
+item_group = {}
+item_group["Ale"] = ["Amber Ale","Pale Ale","Ginger Ale","IPA"] # Add the group of items in deal below
+# item_group["group2"] = ["item1","item2","...etc"]
+
 deals_type_3 = [
-    (Ales_set, 3, 6,"Any 3 ales for £6")
-    # ,(set, number of items, reduced price (in £),"Name of deal")
+    ("Ale", 3, 6,"Any 3 ales for £6") # Add deal descriptions below
+    # ,("group2", number of items, reduced price (in £),"Name of deal")
     ]
 
 # Make deals into dfs
@@ -98,8 +101,6 @@ while add_item.upper().strip() == "YES":
     basket_item_df = pd.DataFrame(basket_item_info, columns=["Item_name", "Weight (kg)"])
     basket_df = pd.concat((basket_df,basket_item_df), ignore_index = True)
 
-
-
     add_item = input("Do you want to add another item? (Yes/No) ")
 
 print(f"\nThe items in the basket are:\n{basket_df}")
@@ -126,17 +127,18 @@ basket_with_prices["Price per kg"] = pd.to_numeric(basket_with_prices["Price per
 print(f"\nThe items in the basket with prices are:\n{basket_with_prices}")
 
 # Calculate prices for items by kg
-basket_with_prices["Full price"] = (
+basket_with_prices["Calc price"] = (
     basket_with_prices["Price"].fillna(0) +
-    (basket_with_prices["Price per kg"] * basket_with_prices["Weight (kg)"].fillna(1).astype(float)).fillna(0)
-)
+    (basket_with_prices["Price per kg"] * basket_with_prices["Weight (kg)"].fillna(1).astype(float)).fillna(0))
+    
+basket_with_prices = basket_with_prices.drop(columns=['Price'])
 
 # Create count of each item and price per item name
 basket_summary = (basket_with_prices.groupby("Item_name", as_index=False)
     .agg(Number_in_basket=("Item_name", "count"), 
-         Full_price=("Full price", "sum"),
-         Price=("Price", "first"))  # Retains the first price found for each item
-    .rename(columns={"Number_in_basket": "Number in basket","Full_price": "Full price"}))
+         Total_item_price=("Calc price", "sum"),
+         Price=("Calc price", "first"))  # Retains the first price found for each item
+    .rename(columns={"Number_in_basket": "Number in basket","Total_item_price": "Total item price"}))
 
 print(f"\nbasket_summary is:\n{basket_summary}")
 
@@ -158,8 +160,8 @@ if not basket_items_with_deal_1.empty:
             # Calculate savings
             no_full_deals = math.floor(row['Number in basket'] / row['Number to buy'])
             deals_remainder = row['Number in basket'] % row['Number to buy']
-            Deal_price = (no_full_deals * row["Number to price"] * row["Price"]) + (deals_remainder * row["Price"])
-            Savings = Deal_price - row["Full price"]
+            Deal_price_full = (no_full_deals * row["Number to price"] * row["Price"]) + (deals_remainder * row["Price"])
+            Savings = Deal_price_full - row["Total item price"]
             print(f"\nSavings are:\n{Savings}")
             return Savings
         else:
@@ -167,18 +169,14 @@ if not basket_items_with_deal_1.empty:
     
 
     basket_items_with_deal_1["Savings"] = basket_items_with_deal_1.apply (lambda row: savings_col_calc(row), axis=1)
-    recieptsavings_deal1 = basket_items_with_deal_1[["Name of deal","Savings"]]
-    print(recieptsavings_deal1)
+    receiptsavings_deal1 = basket_items_with_deal_1[["Name of deal","Savings"]]
+    print(receiptsavings_deal1)
 
 else:
     print("No Deal 1 items found in basket.")
-    recieptsavings_deal1 = pd.DataFrame(columns=["Name of deal","Savings"])
+    receiptsavings_deal1 = pd.DataFrame(columns=["Name of deal","Savings"])
 
 
-
-
-recieptsavings_deal1 = basket_items_with_deal_1[["Name of deal","Savings"]]
-print(recieptsavings_deal1)
 
 #------------------------------------------#
 #           6) Impliment Deal 2s           #
@@ -198,25 +196,88 @@ if not basket_items_with_deal_2.empty:
             # Calculate savings
             no_full_deals = math.floor(row['Number in basket'] / row['Number to buy'])
             deals_remainder = row['Number in basket'] % row['Number to buy']
-            Deal_price = (no_full_deals * row["Deal price"]) + (deals_remainder * row["Price"])
-            Savings = Deal_price - row["Full price"]
+            Deal_price_full = (no_full_deals * row["Deal price"]) + (deals_remainder * row["Price"])
+            Savings = Deal_price_full - row["Total item price"]
             print(f"\nSavings are:\n{Savings}")
             return Savings
         else:
             return 0
 
     basket_items_with_deal_2["Savings"] = basket_items_with_deal_2.apply (lambda row: savings_col_calc(row), axis=1)
-    recieptsavings_deal2 = basket_items_with_deal_2[["Name of deal","Savings"]]
-    print(recieptsavings_deal2)
-
+    receiptsavings_deal2 = basket_items_with_deal_2[["Name of deal","Savings"]]
+    print(receiptsavings_deal2)
 
 else:
     print("No Deal 2 items found in basket.")
-    recieptsavings_deal1 = pd.DataFrame(columns=["Name of deal","Savings"])
-
+    receiptsavings_deal2 = pd.DataFrame(columns=["Name of deal","Savings"])
 
 
 #------------------------------------------#
 #           7) Impliment Deal 3s           #
 #------------------------------------------#
+
+print(len(deal_3_df))
+
+#  Make col deals_type_3["Item_name"] into list
+type_3_list = list(deal_3_df["Item_name"])
+print(type_3_list)
+
+# Loop through all deals in type_3_list
+for deal in type_3_list:
+
+    # find number of items in basket that are in this deal
+    basket_items_with_deal_3 = basket_with_prices[basket_with_prices['Item_name'].isin(item_group[deal])]
+
+    #  Sort by Price
+    basket_items_with_deal_3 = basket_items_with_deal_3.sort_values(by=['Calc price']) # Will sort ASCENDING
+    print(f"\nbasket_items_with_deal_3(sorted by price):\n{basket_items_with_deal_3}")
+
+    # Count how many deal items are in the basket
+    total_deal_items_in_basket = len(basket_items_with_deal_3)
+
+    # Get deal_to_buy from "Number to buy" col in deal_3_df where Item_name is deal
+    deal_to_buy = deal_3_df[deal_3_df["Item_name"] == deal].iloc[0]["Number to buy"]
+
+    # Get deal_to_buy from ""Name of deal"" col in deal_3_df where Item_name is deal
+    name_of_deal = deal_3_df[deal_3_df["Item_name"] == deal].iloc[0]["Name of deal"]
+
+    # Get price_per_deal from "Deal price" col in deal_3_df where Item_name is deal
+    price_per_deal = deal_3_df[deal_3_df["Item_name"] == deal].iloc[0]["Deal price"]
+
+    if total_deal_items_in_basket >= deal_to_buy: 
+
+        print("Deals found!")
+        # Calculate savings
+        no_full_deals = math.floor(total_deal_items_in_basket / deal_to_buy)
+        deals_remainder = total_deal_items_in_basket % deal_to_buy
+
+        # If not enough items to qualify for deal, remaining items must have their regular price
+        remainder_items_df = basket_items_with_deal_3.head(deals_remainder)
+        remaining_items_cost = remainder_items_df['Calc price'].sum()
+
+        Deal_price_full = (no_full_deals * price_per_deal) + remaining_items_cost
+
+        # Calculate the savings 
+        price_without_deals = basket_items_with_deal_3['Calc price'].sum()
+        Savings = Deal_price_full - price_without_deals
+
+
+        print(f"\nThere is a deal on {deal}. Savings are:\n{Savings}")
+
+        # Make receipt
+        data = {"Name of deal": [name_of_deal], "Savings": [Savings]}
+        receiptsavings_deal3 = pd.DataFrame(data)
+        print(receiptsavings_deal3)
+
+    else:
+        print(f"\n{total_deal_items_in_basket} Deal 3 item(s) found in basket. Not enough for deal.")
+        receiptsavings_deal3 = pd.DataFrame(columns=["Name of deal","Savings"])
+
+
+#--------------------------------------#
+#           8) Make receipt            #
+#--------------------------------------#
+
+savings_receipt = pd.concat((receiptsavings_deal3,receiptsavings_deal2,receiptsavings_deal2), ignore_index = True)
+print(f"\nsavings_receipt:\n{savings_receipt}")
 
