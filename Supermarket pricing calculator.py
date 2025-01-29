@@ -315,4 +315,6 @@ for index, row in full_receipt.iterrows():
     if row["col1"] in ["Sub-total", "Total to Pay"]:
         print(f"\033[1m{row['col1']:20} {col2_value}\033[0m")  # Bold
     else:
-        print(f"{row['col1']:20} {col2_value}\n")  # Normal print
+        print(f"{row['col1']:20} {col2_value}")  # Normal print
+
+print("")
