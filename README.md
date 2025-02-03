@@ -25,8 +25,10 @@ different pricing structures including:
 - Install the required Python library, Pandas
 - Items priced by weight (e.g., Oranges, Onions) require you to input the weight in kg.
 - The script currently handles three types of discounts, but you can easily extend it with more complex deals or different pricing strategies.
+- The "Available Items" and "Deals" can be easily edited as needed by the developer in lines 18 and 44-63 respectively.
 
 ### Future improvements
+- Add function to do all 3 deal calculations consistently
 - Ensure that items priced by weight can't be added to deals
 - Allow adding items in bulk
 - Dropdown of available items to select instead of typing in input
